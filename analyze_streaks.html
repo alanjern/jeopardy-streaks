@@ -403,11 +403,13 @@ pre code {
   # - tournaments
   # - championship games
   # - &quot;battle of the decades&quot;
+  # - all-star games
   # - celebrity jeopardy
   # - kids week / back to school week
   filter(is.na(str_match(str_to_lower(comments), &quot;tournament&quot;))) |&gt;
   filter(is.na(str_match(str_to_lower(comments), &quot;championship&quot;))) |&gt;
   filter(is.na(str_match(str_to_lower(comments), &quot;battle&quot;))) |&gt;
+  filter(is.na(str_match(str_to_lower(comments), &quot;all-star&quot;))) |&gt;
   filter(is.na(str_match(str_to_lower(comments), &quot;celebrity&quot;))) |&gt;
   filter(is.na(str_match(str_to_lower(comments), &quot;kids&quot;))) |&gt;
   filter(is.na(str_match(str_to_lower(comments), &quot;week&quot;))) |&gt;

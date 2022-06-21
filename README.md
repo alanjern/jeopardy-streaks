@@ -1,5 +1,5 @@
-# Jeopardy Streaks analysis
+# Jeopardy streaks analysis
 
-An analysis of win streaks across the lifespan of Jeopardy!
+An analysis of win streaks across the lifespan of Jeopardy! Data collected from [J! Archive](https://j-archive.com/).
 
-I was attempting to answer the question: are win streaks becoming more common over time?
+For full analysis and commentary, see my [blog post](https://alanjern.github.io/post/are-win-streaks-on-jeopardy-becoming-more-common/).

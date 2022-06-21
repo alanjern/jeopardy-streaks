@@ -25,11 +25,13 @@ streak_data <- j_data |>
   # - tournaments
   # - championship games
   # - "battle of the decades"
+  # - all-star games
   # - celebrity jeopardy
   # - kids week / back to school week
   filter(is.na(str_match(str_to_lower(comments), "tournament"))) |>
   filter(is.na(str_match(str_to_lower(comments), "championship"))) |>
   filter(is.na(str_match(str_to_lower(comments), "battle"))) |>
+  filter(is.na(str_match(str_to_lower(comments), "all-star"))) |>
   filter(is.na(str_match(str_to_lower(comments), "celebrity"))) |>
   filter(is.na(str_match(str_to_lower(comments), "kids"))) |>
   filter(is.na(str_match(str_to_lower(comments), "week"))) |>

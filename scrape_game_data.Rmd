@@ -46,11 +46,6 @@ for (i in 1:LATEST_SEASON) {
 
 ```{r collect-scores}
 
-# TODO: Record the note at the top of each page and filter out tournaments 
-# (like tournament of champions) because these aren't normal games and they
-# sometimes are scheduled in such a way that they interrupt streaks 
-# (maybe also filter out champtionship to exclude the college champtionship?)
-
 game_ids <- games |>  pull(game_id)
 
 game_results <- list()
@@ -243,8 +238,6 @@ find_full_contestant_name <- function(contestant_list, nickname) {
 ```
 
 ```{r clean-data}
-
-# TODO: join with games to add season to dataset
 
 library(lubridate)
 
