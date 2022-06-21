@@ -140,7 +140,7 @@ p1 <- ggplot() +
   )
 plot(p1)
 
-ggsave('win_streaks.png', width = 9, height = 4)
+ggsave('plots/win_streaks.png', width = 9, height = 4)
 ```
 ```{r streaks-by-season}
 streaks_by_season <- j_data |> 
@@ -209,7 +209,7 @@ p2 <- ggplot() +
        caption = "Data: J! Archive")
 plot(p2)
 
-ggsave('win_streak_lengths.png')
+ggsave('plots/win_streak_lengths.png')
 ```
 ```{r long-streak-pct-by-season}
 long_streaks_by_season <- streaks_by_season |> 
@@ -251,6 +251,6 @@ p3 <- ggplot() +
        caption = "Data: J! Archive")
 plot(p3)
 
-ggsave("number_of_streaks.png")
+ggsave("plots/number_of_streaks.png")
 ```
 
