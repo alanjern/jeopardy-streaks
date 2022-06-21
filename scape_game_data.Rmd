@@ -1,0 +1,296 @@
+---
+title: "Scrape J Archive"
+author: "Alan Jern"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+```{r collect-game-ids}
+LATEST_SEASON <- 38
+
+games <- tribble(
+  ~url, ~season, ~game_id
+)
+
+for (i in 1:LATEST_SEASON) {
+  print(paste("Season",i))
+
+  season_url <- paste0("https://j-archive.com/showseason.php?season=", i)
+
+  season_games <- read_html(season_url) |>
+    html_element("table") |>
+    html_elements("a") |>
+    html_attr("href") |>
+    as_tibble() |>
+    rename(url = value) |>
+    separate(url, into = c("prefix", "game_id"), sep = "=", remove = FALSE) |>
+    filter(!is.na(game_id)) |> 
+    select(url, game_id) |> 
+    mutate(season = i)
+  
+  games <- games |> rbind(season_games)
+}
+
+```
+
+
+
+```{r collect-scores}
+
+# TODO: Record the note at the top of each page and filter out tournaments 
+# (like tournament of champions) because these aren't normal games and they
+# sometimes are scheduled in such a way that they interrupt streaks 
+# (maybe also filter out champtionship to exclude the college champtionship?)
+
+game_ids <- games |>  pull(game_id)
+
+game_results <- list()
+result_count <- 1
+
+for (id in game_ids) {
+  
+  print(paste("Game", id))
+  archive_url <- paste0("https://j-archive.com/showscores.php?game_id=", id)
+  
+  ok <- FALSE
+  while(ok == FALSE) {
+    tryCatch({
+      j_game <- read_html(archive_url)
+      ok <- TRUE
+    },
+    error = function(e) {
+      Sys.sleep(2)
+      e
+    })
+  }
+  
+  # if variables are unavailable, set to NA by default
+  title <- NA
+  comments <- NA
+  contestants <- NA
+  contestants_final <- NA
+  scores_final <- NA
+  
+  try(title <- j_game |> html_element("#game_title") |> 
+        html_text2(),
+      silent = TRUE)
+  
+  try(comments <- j_game |> html_element("#game_comments") |> 
+        html_text2(),
+      silent = TRUE)
+  
+  try(contestants <- j_game |> html_element("#contestants_table") |>
+        html_elements(".contestants") |> 
+        html_elements("a") |> 
+        html_text2(),
+      silent = TRUE)
+  
+  try(contestants_final <- j_game |>  html_element("#final_jeopardy_round") |> 
+        html_element("table") |> 
+        html_element("tr") |> 
+        html_elements("td") |> 
+        html_text2(),
+      silent = TRUE)
+  
+  try({
+    scores_final <- j_game |>  html_element("#final_jeopardy_round") |> 
+      html_element("table") |> 
+      html_elements("tr")
+    
+    scores_final <- scores_final[2] |> html_elements("td") |> 
+      html_text2()},
+    silent = TRUE)
+  
+  results <- tribble(
+    ~game_id, ~game_title, ~comments, ~contestant_list, ~contestants, ~final_scores,
+    id, title, comments, contestants, contestants_final, scores_final
+  )
+  
+  game_results[[result_count]] <- results
+  result_count <- result_count+1
+
+  
+}
+
+game_results <- bind_rows(game_results)
+
+```
+```{r find-contestant-name-function}
+find_full_contestant_name <- function(contestant_list, nickname) {
+  # Remove all non-alpha characters 
+  #(except for hyphen, period, apostrophe, and internal spaces)
+  n <- str_remove_all(nickname, "[^a-zA-Z\\-.' ]")
+  n <- str_trim(n)
+  
+  # I've hard-coded some nicknames here to take care of hard cases in the data
+  if (n == "Mike") {
+    n <- "(Mike|Michael)"
+  }
+  else if (n == "Dave") {
+    n <- "(Dave|David)"
+  }
+  else if (n == "Tom") {
+    n <- "(Tom|Thomas)"
+  }
+  else if (n == "Dottie") {
+    n <- "(Dottie|Dorothy)"
+  }
+  else if (n == "Ernie") {
+    n <- "(Ernie|Ernest)"
+  }
+  else if (n == "Charlie") {
+    n <- "(Charlie|Charles)"
+  }
+  else if (n == "Ray") {
+    n <- "(Ray|Arthur)"
+  }
+  else if (n == "Sandy") {
+    n <- "(Sandy|Sandra)"
+  }
+  else if (n == "SSGT Paul") {
+    n <- "Paul Croshier"
+  }
+  else if (n == "DJ") {
+    n <- "(DJ|David)"
+  }
+  else if (n == "Sparky") {
+    n <- "(Sparky|John)"
+  }
+  else if (n == "Air Rob") {
+    n <- "(Air Rob|Rob)"
+  }
+  else if (n == "BobCat") {
+    n <- "(BobCat|Bob)"
+  }
+  else if (n == "MaryBeth") {
+    n <- "(MaryBeth|Mary Beth)"
+  }
+  else if (n == "zgn") {
+    n <- "Ozgun"
+  }
+  else if (n == "Julin") {
+    n <- "Julián"
+  }
+  else if (n == "Franois") {
+    n <- "Francois"
+  }
+  else if (n == "Rene" || n == "Renée") {
+    n <- "(Rene|Renée)"
+  }
+  else if (n == "Rb") {
+    n <- "Røb"
+  }
+  else if (n == "Dr. Oz") {
+    n <- "Dr. Mehmet Oz"
+  }
+  else if (n == "Desire") {
+    n <- "(Desirée|Desire)"
+  }
+  else if (n == "Frdrique") {
+    n <- "Frédérique"
+  }
+  else if (n == "Genevive") {
+    n <- "Geneviève"
+  }
+  else if (n == "Nio") {
+    n <- "Niño"
+  }
+  else if (n == "Steve-O") {
+    n <- "Steven"
+  }
+  else if (n == "Csar") {
+    n <- "César"
+  }
+  else if (n == "Sebastin") {
+    n <- "Sebastián"
+  }
+  else if (n == "Nadge") {
+    n <- "Nadège"
+  }
+  else if (n == "Andrs") {
+    n <- "Andrés"
+  }
+  else if (n == "Ramn") {
+    n <- "Ramón"
+  }
+  else if (n == "Anglica") {
+    n <- "Angélica"
+  }
+
+  
+  # Cycle through all names in contestant list and look for a match
+  for (c in contestant_list) {
+    if (!is.na(str_match(str_to_lower(c), str_to_lower(n))[1])) {
+      return(c)
+    }
+  }
+  
+  # No matches found
+  print(paste(contestant_list[1],
+              contestant_list[2],
+              contestant_list[3], n,sep = ","))
+  stop("Error: find_full_contestant_name found no name matches.")
+}
+```
+
+```{r clean-data}
+
+# TODO: join with games to add season to dataset
+
+library(lubridate)
+
+results <- game_results |> 
+  # For some reason, there were some repeat games, so I'll just drop them
+  distinct(game_id, .keep_all = TRUE) |> 
+  unnest(c("contestants", "final_scores")) |> 
+  # choosing a more appropriate column name after unnesting these columns
+  rename(contestant = contestants,
+         final_score = final_scores) |> 
+  # filter out "Team Colby", "Team Brad", "Team Ken", "Team Buzzy", 
+  #   "Team Austin", and "Team Julia".
+  #   This was from an all-star team competition and given how I'm processing
+  #   the data, I can't really handle these games in a natural way (because
+  #   each "winner" maps to multiple players)
+  filter(contestant != "Team Colby" & 
+           contestant != "Team Brad" & 
+           contestant != "Team Ken" & 
+           contestant != "Team Buzzy" & 
+           contestant != "Team Austin" & 
+           contestant != "Team Julia") |> 
+  # try to match the contestant nickname with the full name in the contestant list
+  rowwise() |>  
+  mutate(contestant = find_full_contestant_name(unlist(contestant_list), contestant)) |> 
+  # find the winner of eqch game
+  mutate(final_score = parse_number(gsub("[$,]", "", final_score))) |> 
+  group_by(game_id) |> 
+  mutate(winner = (final_score == max(final_score))) |> 
+  ungroup(game_id) |> 
+  select(-contestant_list) |> 
+  # identify the number and date of each game
+  separate(game_title, 
+           into = c("show_number", "air_date"),
+           sep = " - ") |> 
+  separate(show_number,
+           into = c("prefix", "show_number"),
+           sep = "#",
+           convert = TRUE) |> 
+  select(-prefix) |> 
+  mutate(air_date = parse_date_time(air_date, "BdY")) |> 
+  # add season column
+  left_join(games, by = "game_id")
+
+# Save data
+write_csv(results, "jeopardy_winners.csv")
+```
+
+
+
